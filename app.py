@@ -86,7 +86,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("Text Sentiment Analysis")
+    st.title("Feelometric.")
 
     # Input text
     text = st.text_area("Enter text to analyze:", "")
