@@ -21,7 +21,8 @@ def init_db():
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS TextEntries (
-            original_text TEXT NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entered_text TEXT NOT NULL,
             processed_text TEXT NOT NULL,
             sentiment_score REAL NOT NULL
         )
@@ -30,15 +31,15 @@ def init_db():
     conn.close()
 
 # Store text and sentiment in the database with updated column names
-def store_in_db(original_text, processed_text, sentiment_score):
+def store_in_db(entered_text, processed_text, sentiment_score):
     """Store the user-entered text, processed text, and sentiment score in the SQLite database."""
-    if original_text:
+    if entered_text:
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO TextEntries (original_text, processed_text, sentiment_score)
+            INSERT INTO TextEntries (entered_text, processed_text, sentiment_score)
             VALUES (?, ?, ?)
-        ''', (original_text, processed_text, sentiment_score))
+        ''', (entered_text, processed_text, sentiment_score))
         conn.commit()
         conn.close()
 
@@ -86,7 +87,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-    st.title("Feelometric.")
+    st.title("Feelometric")
 
     # Input text
     text = st.text_area("Enter text to analyze:", "")
@@ -124,13 +125,13 @@ def main():
     if st.button("Show Stored Database"):
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
-        cursor.execute('SELECT original_text, processed_text, sentiment_score FROM TextEntries')
+        cursor.execute('SELECT id, entered_text, processed_text, sentiment_score FROM TextEntries')
         rows = cursor.fetchall()
         conn.close()
 
         if rows:
             # Display the rows in a table with the correct column names
-            df = pd.DataFrame(rows, columns=["Original Text", "Processed Text", "Sentiment Score"])
+            df = pd.DataFrame(rows, columns=["ID", "Entered Text", "Processed Text", "Sentiment Score"])
             st.write("Stored Entries:")
             st.dataframe(df)
 
@@ -156,6 +157,27 @@ def main():
 
         else:
             st.write("No data available in the database")
+
+    # SQL Query Execution Section
+    st.markdown("### Execute a SQL Query on the Database")
+    query = st.text_area("Enter your SQL query:", "")
+    if st.button("Run Query"):
+        if query:
+            try:
+                conn = sqlite3.connect(DATABASE)
+                cursor = conn.cursor()
+                cursor.execute(query)
+                query_results = cursor.fetchall()
+                conn.close()
+
+                if query_results:
+                    columns = [description[0] for description in cursor.description]
+                    df = pd.DataFrame(query_results, columns=columns)
+                    st.dataframe(df)
+                else:
+                    st.write("No results returned.")
+            except sqlite3.Error as e:
+                st.error(f"An error occurred: {e}")
 
     # About section
     if st.button("About"):
